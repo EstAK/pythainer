@@ -9,7 +9,7 @@ projects like CLSPV.
 
 from typing import List, Tuple
 
-from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder
+from pythainer.builders import PartialDockerBuilder, UbuntuDockerBuilder, UserManager
 from pythainer.builders.utils import cmake_build_install
 from pythainer.examples.installs import clspv_build_install
 
@@ -19,7 +19,7 @@ def get_user_builder(
     base_ubuntu_image: str,
     user_name: str = "user",
     lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
-    cmake_version: str = "3.27.9",
+    cmake_version: str | None = "3.27.9",
     packages: List[str] = (),
 ) -> UbuntuDockerBuilder:
     """
@@ -32,7 +32,7 @@ def get_user_builder(
         base_ubuntu_image (str): Base docker base image to use.
         user_name (str): Name of the non-root user to create.
         lib_dir (str): Directory for libraries and tools.
-        cmake_version (str): Version of CMake to install.
+        cmake_version (str | None): Version of CMake to install.
         packages (List[str]): Additional packages to install in the Docker image.
 
     Returns:
@@ -117,7 +117,8 @@ def get_user_builder(
     docker_builder.space()
 
     docker_builder.desc("Build & install CMake from source")
-    cmake_build_install(builder=docker_builder, version=cmake_version, workdir=lib_dir)
+    if cmake_version != None:
+        cmake_build_install(builder=docker_builder, version=cmake_version, workdir=lib_dir)
 
     return docker_builder
 
@@ -268,6 +269,7 @@ def rust_builder(
     install_cargo_edit: bool = True,
     install_cargo_watch: bool = False,
     install_nightly: bool = False,
+    user_manager: UserManager | None = None,
 ) -> PartialDockerBuilder:
     """
     Sets up a Docker builder for Rust development by installing Rust via rustup
@@ -279,12 +281,16 @@ def rust_builder(
         install_cargo_edit (bool): Whether to install cargo-edit (adds `cargo add`, etc.).
         install_cargo_watch (bool): Whether to install cargo-watch for file change detection.
         install_nightly (bool): Whether to install the nightly version of rust or not.
+        user_manager(UserManager | None): The `UserManager` from the parent builder or None if
+                                          the user wants to use the legacy user API
 
     Returns:
         PartialDockerBuilder: Docker builder configured for Rust development.
     """
     builder = PartialDockerBuilder()
-    builder.user()
+    builder.user_manager = user_manager
+
+    builder.user(name="User", check=True if builder.user_manager else False)
 
     # Install Rust using rustup (non-interactive)
     cmd = "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
