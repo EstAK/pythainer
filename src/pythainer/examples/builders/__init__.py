@@ -19,7 +19,7 @@ def get_user_builder(
     base_ubuntu_image: str,
     user_name: str = "user",
     lib_dir: str = "/home/${USER_NAME}/workspace/libraries",
-    cmake_version: str = "3.27.9",
+    cmake_version: str | None = "3.27.9",
     packages: List[str] = (),
 ) -> UbuntuDockerBuilder:
     """
@@ -32,7 +32,7 @@ def get_user_builder(
         base_ubuntu_image (str): Base docker base image to use.
         user_name (str): Name of the non-root user to create.
         lib_dir (str): Directory for libraries and tools.
-        cmake_version (str): Version of CMake to install.
+        cmake_version (str | None): Version of CMake to install.
         packages (List[str]): Additional packages to install in the Docker image.
 
     Returns:
@@ -117,7 +117,8 @@ def get_user_builder(
     docker_builder.space()
 
     docker_builder.desc("Build & install CMake from source")
-    cmake_build_install(builder=docker_builder, version=cmake_version, workdir=lib_dir)
+    if not cmake_version is None:
+        cmake_build_install(builder=docker_builder, version=cmake_version, workdir=lib_dir)
 
     return docker_builder
 
